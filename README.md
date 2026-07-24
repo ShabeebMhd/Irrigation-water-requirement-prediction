@@ -2,7 +2,7 @@
 
 **A decision-support model that tells a farmer or irrigation scheduler two things: does this field need water right now, and if so, how much — built to reduce both crop stress from under-watering and waste from over-watering.**
 
-[Live demo: Streamlit app](#running-the-app) · [Full technical workflow](Irrigation_Model_Complete_Workflow.md) · [Notebook](Final_Corrected_Irrigation_water_requirement_prediction.ipynb)
+[Live demo: Streamlit app](https://irrigation-water-requirement-prediction-xy3wt97jxrd22bghfvzbpq.streamlit.app/) · [Full technical workflow](Irrigation_Model_Complete_Workflow.md) · [Notebook](Final_Corrected_Irrigation_water_requirement_prediction.ipynb)
 
 ---
 
