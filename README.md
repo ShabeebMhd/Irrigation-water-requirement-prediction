@@ -57,9 +57,6 @@ A production mindset shows up in the decisions made *around* the model, not just
 - **Explainable by design.** SHAP values are generated for both stages so that a prediction can be justified feature-by-feature, not just trusted on faith — necessary for anything a real decision-maker is expected to act on.
 - **Shipped, not just modeled.** All preprocessing objects, both models, and the inference logic are serialized with a single source of truth for categorical encoding, and deployed behind an actual interface (see below) — because a notebook that ends at `model.predict()` isn't a deliverable, it's a draft.
 
-## Try It
-
-A Streamlit interface takes 9 field-condition inputs and returns the irrigation recommendation, probability, and predicted volume in real time.
 
 ### Try It
 A Streamlit interface takes 9 field-condition inputs and returns the irrigation recommendation, probability, and predicted volume in real time.
