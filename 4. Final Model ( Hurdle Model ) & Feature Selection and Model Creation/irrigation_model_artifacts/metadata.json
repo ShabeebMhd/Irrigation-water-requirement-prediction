@@ -1,0 +1,67 @@
+{
+  "binary_maps": {
+    "Season": {
+      "Maha": 0,
+      "Yala": 1
+    },
+    "Mulching_Used": {
+      "No": 0,
+      "Yes": 1
+    }
+  },
+  "multiclass_cols": [
+    "Climate_Zone",
+    "Crop_Type",
+    "Crop_Growth_Stage",
+    "Soil_Type",
+    "Irrigation_Type",
+    "Water_Source"
+  ],
+  "clf_features": [
+    "Season",
+    "Stage_Duration_days",
+    "Tmax_C",
+    "Humidity_pct",
+    "Rainfall_mm",
+    "Sunlight_Hours",
+    "Reference_ET0_mm_day",
+    "Crop_Coefficient_Kc",
+    "Climate_Zone_Wet"
+  ],
+  "reg_features": [
+    "Stage_Duration_days",
+    "Rainfall_mm",
+    "Reference_ET0_mm_day",
+    "Crop_Coefficient_Kc",
+    "Tmax_C"
+  ],
+  "hurdle_threshold": 0.4,
+  "raw_input_columns": [
+    "Climate_Zone",
+    "Season",
+    "Crop_Type",
+    "Crop_Growth_Stage",
+    "Stage_Duration_days",
+    "Soil_Type",
+    "Soil_pH",
+    "Soil_Moisture_pct",
+    "Organic_Carbon_pct",
+    "Electrical_Conductivity_dSm",
+    "Tmax_C",
+    "Tmin_C",
+    "Temperature_C",
+    "Humidity_pct",
+    "Rainfall_mm",
+    "Sunlight_Hours",
+    "Wind_Speed_kmh",
+    "Irrigation_Type",
+    "Water_Source",
+    "Field_Area_hectare",
+    "Mulching_Used",
+    "Reference_ET0_mm_day",
+    "Crop_Coefficient_Kc"
+  ],
+  "sklearn_version": "1.6.0",
+  "trained_on_rows": 8000,
+  "notes": "Stage 2 regressor is GradientBoostingRegressor. Field_Cycle_ID excluded from features."
+}
