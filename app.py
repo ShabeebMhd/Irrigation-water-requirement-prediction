@@ -110,10 +110,13 @@ except FileNotFoundError as e:
 # =========================================================================
 # PHASE 3: THE 9 FIELDS THAT ACTUALLY MATTER
 # =========================================================================
-# Only Season, Climate_Zone, and 7 numeric fields ever reach either model
-# (verified: scaler.transform() scales every column independently, so
-# every OTHER raw column can be defaulted with a placeholder value below
-# and it will not change the prediction by even one floating-point digit).
+# 7 of the 9 live here. The other 2 — Crop_Coefficient_Kc and
+# Stage_Duration_days — are collected in the "Crop Details" section below,
+# auto-filled from the Crop + Growth Stage selection instead of typed
+# directly, since that lookup already determines them exactly.
+# (Verified: scaler.transform() scales every column independently, so every
+# OTHER raw column outside these 9 can be defaulted with a placeholder value
+# and it will not change the prediction by even one floating-point digit.)
 FIELD_SPECS = {
     "Season": {
         "type": "categorical", "options": ["Maha", "Yala"],
@@ -124,11 +127,6 @@ FIELD_SPECS = {
         "type": "categorical", "options": ["Dry", "Intermediate", "Wet"],
         "label": "Climate Zone",
         "hint": "Sri Lanka's three agro-climatic zones",
-    },
-    "Stage_Duration_days": {
-        "type": "numeric", "min": 10.0, "max": 65.0, "default": 25.0,
-        "label": "Growth Stage Duration (days)",
-        "hint": "Length of the current crop growth stage",
     },
     "Tmax_C": {
         "type": "numeric", "min": 20.0, "max": 40.0, "default": 31.0,
@@ -155,29 +153,20 @@ FIELD_SPECS = {
         "label": "Reference Evapotranspiration ET₀ (mm/day)",
         "hint": "FAO-56 reference ET₀ — from local weather station or estimate",
     },
-    "Crop_Coefficient_Kc": {
-        "type": "numeric", "min": 0.3, "max": 1.3, "default": 0.9,
-        "label": "Crop Coefficient (Kc)",
-        "hint": "FAO-56 Kc value for this crop and growth stage",
-    },
 }
 
-# These two are shown for the user's own record-keeping / context only.
-# The trained models never see them: Crop_Type and Crop_Growth_Stage did not
-# survive RFECV feature selection in either stage, so changing these values
-# has zero effect on the prediction. Kc already encodes the crop- and
-# stage-specific water demand that would otherwise come from these fields.
-CONTEXT_FIELD_SPECS = {
-    "Crop_Type": {
-        "options": ["Big Onion", "Paddy (Rice)", "Tomato", "Green Gram", "Maize", "Chili"],
-        "label": "Crop",
-        "hint": "For your reference — does not change the prediction (see caption below)",
-    },
-    "Crop_Growth_Stage": {
-        "options": ["Initial", "Development", "Mid-season", "Late-season"],
-        "label": "Growth Stage",
-        "hint": "For your reference — does not change the prediction (see caption below)",
-    },
+# Crop + Growth Stage together fully determine Kc AND Stage_Duration_days in the
+# training data (verified: std=0 across every combo — these are exact lookups,
+# not approximations). So instead of asking the user to separately know their
+# Kc value, we ask for Crop + Stage and auto-fill both Kc and duration from
+# this table — while still letting them hand-edit either afterward.
+CROP_STAGE_LOOKUP = {
+    "Big Onion":    {"Initial": (0.70, 15), "Development": (0.90, 25), "Mid-season": (1.05, 35), "Late-season": (0.75, 20)},
+    "Chili":        {"Initial": (0.60, 25), "Development": (0.85, 35), "Mid-season": (1.05, 60), "Late-season": (0.90, 30)},
+    "Green Gram":   {"Initial": (0.40, 12), "Development": (0.75, 18), "Mid-season": (1.05, 22), "Late-season": (0.40, 13)},
+    "Maize":        {"Initial": (0.30, 20), "Development": (0.75, 30), "Mid-season": (1.20, 35), "Late-season": (0.60, 15)},
+    "Paddy (Rice)": {"Initial": (1.05, 20), "Development": (1.10, 30), "Mid-season": (1.20, 40), "Late-season": (0.95, 25)},
+    "Tomato":       {"Initial": (0.60, 20), "Development": (0.90, 25), "Mid-season": (1.15, 35), "Late-season": (0.80, 20)},
 }
 
 
@@ -260,15 +249,37 @@ with st.container(border=True):
     st.subheader("🌾 Crop Details")
     context_inputs = {}
     ctx_col1, ctx_col2 = st.columns(2)
-    for i, (field, spec) in enumerate(CONTEXT_FIELD_SPECS.items()):
-        target_col = ctx_col1 if i % 2 == 0 else ctx_col2
-        with target_col:
-            context_inputs[field] = st.selectbox(spec["label"], spec["options"], help=spec["hint"])
+    with ctx_col1:
+        crop = st.selectbox("Crop", list(CROP_STAGE_LOOKUP.keys()), help="Selecting this auto-fills Kc and stage duration below")
+    with ctx_col2:
+        stage = st.selectbox("Growth Stage", list(CROP_STAGE_LOOKUP[crop].keys()), help="Selecting this auto-fills Kc and stage duration below")
+    context_inputs["Crop_Type"] = crop
+    context_inputs["Crop_Growth_Stage"] = stage
+
+    default_kc, default_duration = CROP_STAGE_LOOKUP[crop][stage]
+
+    kc_col, dur_col = st.columns(2)
+    with kc_col:
+        # key=f"...{crop}_{stage}" is what forces the widget to snap to the new
+        # default the moment crop/stage changes — without it, Streamlit would
+        # keep whatever the user last typed instead of updating.
+        context_inputs["Crop_Coefficient_Kc"] = st.number_input(
+            "Crop Coefficient (Kc)", min_value=0.3, max_value=1.3,
+            value=default_kc, step=0.05, key=f"kc_{crop}_{stage}",
+            help="Auto-filled from Crop + Growth Stage — edit if your field differs from the FAO-56 default",
+        )
+    with dur_col:
+        context_inputs["Stage_Duration_days"] = st.number_input(
+            "Growth Stage Duration (days)", min_value=10.0, max_value=65.0,
+            value=float(default_duration), step=1.0, key=f"dur_{crop}_{stage}",
+            help="Auto-filled from Crop + Growth Stage — edit if your field differs from the FAO-56 default",
+        )
+
     st.caption(
-        "ℹ️ Crop and growth stage are recorded for your reference only. The model's final "
-        "5 selected features don't include them — their agronomic effect is already captured "
-        "through the Crop Coefficient (Kc) value you enter below, which you should set to "
-        "match this crop and stage per FAO-56 tables."
+        "ℹ️ Kc and stage duration are auto-filled from your Crop + Growth Stage selection "
+        "(pulled from the same FAO-56 lookup table the training data used), and both feed "
+        "directly into the prediction. Adjust either one if your field's actual duration or "
+        "coefficient differs from the standard reference value."
     )
 
 st.write("")
